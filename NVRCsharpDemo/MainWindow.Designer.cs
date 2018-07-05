@@ -200,7 +200,7 @@
             this.textBoxIP.Name = "textBoxIP";
             this.textBoxIP.Size = new System.Drawing.Size(114, 21);
             this.textBoxIP.TabIndex = 20;
-            this.textBoxIP.Text = "172.6.22.19";
+            this.textBoxIP.Text = "172.6.22.18";
             // 
             // btnLogin
             // 
