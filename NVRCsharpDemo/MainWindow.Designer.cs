@@ -811,7 +811,7 @@
             this.Controls.Add(this.groupBox4);
             this.Name = "MainWindow";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Main Window";
+            this.Text = "NVR Video download and upload";
             this.Load += new System.EventHandler(this.MainWindow_Load);
             ((System.ComponentModel.ISupportInitialize)(this.VideoPlayWnd)).EndInit();
             this.groupBox1.ResumeLayout(false);
