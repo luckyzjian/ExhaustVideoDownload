@@ -8,6 +8,8 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using jiangxi2Inter;
 
 namespace NVRCsharpDemo
 {
@@ -40,12 +42,22 @@ namespace NVRCsharpDemo
         public CHCNetSDK.NET_DVR_GET_STREAM_UNION m_unionGetStream;
         public CHCNetSDK.NET_DVR_IPCHANINFO m_struChanInfo;
 
+        public static jiangxi2Inter.JX2Interface jx2interface = null;
+
+        //ConfigFile config;
+        string NET_authCode, NET_testlineNo;
+        SqlControl sql;
+        public int[,] testLineChanel=new int[8,2];
+        public bool isUploading = false;
+
         [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 96, ArraySubType = UnmanagedType.U4)]
         private int[] iChannelNum;
-
+        private string ftpdir = "D://VIDEOFTP/";
+        Thread uploadThread = null;
         public MainWindow()
         {
             InitializeComponent();
+            Control.CheckForIllegalCrossThreadCalls = false;
             m_bInitSDK = CHCNetSDK.NET_DVR_Init();
             if (m_bInitSDK == false)
             {
@@ -59,7 +71,132 @@ namespace NVRCsharpDemo
                 iChannelNum = new int[96];
             }
         }
+        private void readNVRsetting(out string ip,out Int16 port,out string name,out string password)
+        {
+            port = 9999;
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            ip = config.GetConfigValue("NVRIP");
+            int porttemp;
+            if (config.TryParseConfigValue("NVRPORT", out porttemp))
+                port = (Int16)porttemp;
+            name = config.GetConfigValue("NVRNAME");
+            password = config.GetConfigValue("NVRPASSWORD");
+        }
+        private void readNETsetting(out string testlineNo, out string authCode)
+        {
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            testlineNo = config.GetConfigValue("testlineNo");
+            authCode = config.GetConfigValue("authCode");
+        }
+        private void readCHANNELsetting()
+        {
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            for (int i=1;i<=8;i++)
+            {
+                int porttemp;
+                if (config.TryParseConfigValue("CHANELFRONT"+i.ToString(), out porttemp))
+                    testLineChanel[i-1,0] = (Int16)porttemp;
+                if (config.TryParseConfigValue("CHANELBACK" + i.ToString(), out porttemp))
+                    testLineChanel[i - 1, 1] = (Int16)porttemp;
+            }
+            comboBoxChF1.Text = testLineChanel[0, 0].ToString();
+            comboBoxChB1.Text = testLineChanel[0, 1].ToString();
+            comboBoxChF2.Text = testLineChanel[1, 0].ToString();
+            comboBoxChB2.Text = testLineChanel[1, 1].ToString();
+            comboBoxChF3.Text = testLineChanel[2, 0].ToString();
+            comboBoxChB3.Text = testLineChanel[2, 1].ToString();
+            comboBoxChF4.Text = testLineChanel[3, 0].ToString();
+            comboBoxChB4.Text = testLineChanel[3, 1].ToString();
+            comboBoxChF5.Text = testLineChanel[4, 0].ToString();
+            comboBoxChB5.Text = testLineChanel[4, 1].ToString();
+            comboBoxChF6.Text = testLineChanel[5, 0].ToString();
+            comboBoxChB6.Text = testLineChanel[5, 1].ToString();
+            comboBoxChF7.Text = testLineChanel[6, 0].ToString();
+            comboBoxChB7.Text = testLineChanel[6, 1].ToString();
+            comboBoxChF8.Text = testLineChanel[7, 0].ToString();
+            comboBoxChB8.Text = testLineChanel[7, 1].ToString();
+        }
+        private void saveChanelsetting()
+        {
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            try
+            {
+                testLineChanel[0, 0] = int.Parse(comboBoxChF1.Text);
+                testLineChanel[0, 1] = int.Parse(comboBoxChB1.Text);
+                testLineChanel[1, 0] = int.Parse(comboBoxChF2.Text);
+                testLineChanel[1, 1] = int.Parse(comboBoxChB2.Text);
+                testLineChanel[2, 0] = int.Parse(comboBoxChF3.Text);
+                testLineChanel[2, 1] = int.Parse(comboBoxChB3.Text);
+                testLineChanel[3, 0] = int.Parse(comboBoxChF4.Text);
+                testLineChanel[3, 1] = int.Parse(comboBoxChB4.Text);
+                testLineChanel[4, 0] = int.Parse(comboBoxChF5.Text);
+                testLineChanel[4, 1] = int.Parse(comboBoxChB5.Text);
+                testLineChanel[5, 0] = int.Parse(comboBoxChF6.Text);
+                testLineChanel[5, 1] = int.Parse(comboBoxChB6.Text);
+                testLineChanel[6, 0] = int.Parse(comboBoxChF7.Text);
+                testLineChanel[6, 1] = int.Parse(comboBoxChB7.Text);
+                testLineChanel[7, 0] = int.Parse(comboBoxChF8.Text);
+                testLineChanel[7, 1] = int.Parse(comboBoxChB8.Text);
+                for (int i = 1; i <= 8; i++)
+                {
+                    config["CHANELFRONT" + i.ToString()] = testLineChanel[i - 1, 0].ToString();
+                    config["CHANELBACK" + i.ToString()] = testLineChanel[i - 1, 1].ToString();
+                }
+            }
+            catch
+            {
+                MessageBox.Show("输入格式有误");
+            }
+        }
+        private void saveNVRsetting(string ip,Int16 port,string name,string password)
+        {
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            config["NVRIP"] = ip;
+            config["NVRPORT"] = port.ToString();
+            config["NVRNAME"] = name;
+            config["NVRPASSWORD"] = password;
+            //config.AddOrSetKeyValue("NVR", "IP", ip);
+            //config.AddOrSetKeyValue("NVR", "PORT", port.ToString());
+            //config.AddOrSetKeyValue("NVR", "NAME", name);
+            //config.AddOrSetKeyValue("NVR", "PASSWORD", password);
+        }
+        private void saveNETsetting(string testlineNo,  string authCode)
+        {
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            config["testlineNo"] = testlineNo;
+            config["authCode"] = authCode;
+        }
+        private bool initNetInter()
+        {
+            try
+            {
+                LogMessage("初始化联网接口");
+                jx2interface = new jiangxi2Inter.JX2Interface(NET_testlineNo, "01", NET_authCode);
+                string servertime = "", errmsg = "";
+                if (jx2interface.getSystemTime(out servertime, out errmsg))
+                {
+                    DateTime syntime = DateTime.Parse(servertime);
+                    SetSystemDateTime.SetLocalTimeByStr(syntime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    logControl.saveLogInf("同步服务器联网时间成功:" + syntime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    LogMessage("同步服务器联网时间成功:" + syntime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    return true;
 
+                }
+                else
+                {
+                    logControl.saveLogInf("同步服务器联网时间失败:" + errmsg);
+                    LogMessage("同步服务器联网时间失败:" + errmsg);
+                    return false;
+                }
+
+            }
+            catch (Exception er)
+            {
+                logControl.saveLogInf("同步服务器联网时间异常:" + er.Message);
+                LogMessage("同步服务器联网时间异常:" + er.Message);
+                return false;
+            }
+        }
         private void btnLogin_Click(object sender, EventArgs e)
         {
             if (textBoxIP.Text == "" || textBoxPort.Text == "" ||
@@ -74,8 +211,8 @@ namespace NVRCsharpDemo
                 Int16 DVRPortNumber = Int16.Parse(textBoxPort.Text);//设备服务端口号
                 string DVRUserName = textBoxUserName.Text;//设备登录用户名
                 string DVRPassword = textBoxPassword.Text;//设备登录密码
-
-            //    DeviceInfo = new CHCNetSDK.NET_DVR_DEVICEINFO_V30();
+                saveNVRsetting(DVRIPAddress, DVRPortNumber, DVRUserName, DVRPassword);
+                //    DeviceInfo = new CHCNetSDK.NET_DVR_DEVICEINFO_V30();
 
                 //登录设备 Login the device
                 m_lUserID = CHCNetSDK.NET_DVR_Login_V30(DVRIPAddress, DVRPortNumber, DVRUserName, DVRPassword, ref DeviceInfo);
@@ -841,8 +978,30 @@ namespace NVRCsharpDemo
         private void MainWindow_Load(object sender, EventArgs e)
         {
             //初始化时间
+            string NVR_IP, NVR_name, NVR_password;
+            Int16 NVR_port;
+            readNVRsetting(out NVR_IP, out NVR_port, out NVR_name, out NVR_password);
+            readNETsetting(out NET_testlineNo, out NET_authCode);
+            readCHANNELsetting();
+            textBoxIP.Text = NVR_IP;
+            textBoxPort.Text = NVR_port.ToString();
+            textBoxUserName.Text = NVR_name;
+            textBoxPassword.Text = NVR_password;
+            textBoxTestLineNo.Text = NET_testlineNo;
+            textBoxAuthCode.Text = NET_authCode;
             dateTimeStart.Text = DateTime.Now.ToShortDateString();
             dateTimeEnd.Text = DateTime.Now.ToString();
+            dateTimePickerJcKssj.Text = DateTime.Now.ToString("yyyy-MM-dd")+" 00:00:00";
+            dateTimePickerJcJssj.Text= DateTime.Now.ToString("yyyy-MM-dd") + " 23:59:59";
+            sql = new SqlControl();
+            if (initNetInter())
+            {
+                //buttonFlash.Enabled = true;
+            }
+            else
+            {
+                //buttonFlash.Enabled = false;
+            }
         }
 
         private void btn_Exit_Click(object sender, EventArgs e)
@@ -867,8 +1026,281 @@ namespace NVRCsharpDemo
                 CHCNetSDK.NET_DVR_Logout(m_lUserID);
                 m_lUserID = -1;
             }
-
+            try
+            {
+                if (uploadThread != null)
+                {
+                    if (uploadThread.IsAlive)
+                    {
+                        uploadThread.Abort();
+                    }
+                }
+            }
+            catch
+            { }
             Application.Exit();
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            NET_testlineNo = textBoxTestLineNo.Text;
+            NET_authCode = textBoxAuthCode.Text;
+            saveNETsetting(NET_testlineNo, NET_authCode);
+        }
+
+        private void buttonFlash_Click(object sender, EventArgs e)
+        {
+            if (!isUploading)
+            {
+                buttonFlash.Enabled = false;
+                buttonStopRefresh.Enabled = true;
+                isUploading = true;
+                try
+                {
+                    if (uploadThread != null)
+                    {
+                        if (uploadThread.IsAlive)
+                        {
+                            uploadThread.Abort();
+                        }
+                    }
+                }
+                catch
+                { }
+                uploadThread = new Thread(upload_Progress);
+                uploadThread.Start();
+            }
+            else
+            {
+                MessageBox.Show("正在上传数据，不能刷新列表");
+            }
+        }
+        private void upload_Progress()
+        {
+            try
+            {
+                while (true)
+                {
+                    DataTable dt = sql.getCarList(dateTimePickerJcKssj.Value, dateTimePickerJcJssj.Value);
+                    listViewCar.Items.Clear();
+                    if (dt != null)
+                        if (dt.Rows.Count > 0)
+                        {
+                            for (int i = 0; i < dt.Rows.Count; i++)
+                            {
+                                DataRow dr = dt.Rows[i];
+                                if (dr["HasUpload"].ToString() == "Y")
+                                {
+                                    listViewFinish.Items.Add(new ListViewItem(new string[] { dr["CLID"].ToString(), dr["VideoFrontUrl"].ToString(), dr["VideoBackUrl"].ToString() }));
+                                }
+                                else
+                                {
+                                    listViewCar.Items.Add(new ListViewItem(new string[] { dr["CLID"].ToString(), dr["JCSJ"].ToString(), "待处理", dr["JCKSSJ"].ToString(), dr["JCJSSJ"].ToString(), dr["LINEID"].ToString() }));
+                                }
+                            }
+                        }
+                    if (listViewCar.Items.Count > 0)
+                    {
+                        for (int i = 0; i < listViewCar.Items.Count; i++)
+                        {
+                            listViewCar.Items[i].SubItems[2].Text = "准备下载";
+                            string clid = listViewCar.Items[i].SubItems[0].Text;
+                            string jcsj = DateTime.Parse(listViewCar.Items[i].SubItems[1].Text).ToString("HHmmss");
+                            int lineindex = int.Parse(listViewCar.Items[i].SubItems[5].Text);
+                            DateTime jckssj = DateTime.Now, jcjssj = DateTime.Now;
+                            LogMessage("准备下载视频，车辆ID=" + clid);
+                            string frontvideourl =  clid + jcsj + "front.mp4";
+                            string backvideourl = clid + jcsj + "back.mp4";
+                            bool isfrontvideoexist = false, isbackvideoexist = false;
+                            if (File.Exists(frontvideourl))
+                            {
+                                LogMessage("前视频已存在");
+                                isfrontvideoexist = true;
+                            }
+                            if (File.Exists(backvideourl))
+                            {
+                                LogMessage("后视频已存在");
+                                isbackvideoexist = true;
+                            }
+                            if (!isfrontvideoexist || !isbackvideoexist)
+                            {
+                                if (!DateTime.TryParse(listViewCar.Items[i].SubItems[3].Text, out jckssj))
+                                {
+                                    LogError("检测开始时间格式异常:" + listViewCar.Items[i].SubItems[3].Text);
+                                    continue;
+                                }
+                                if (!DateTime.TryParse(listViewCar.Items[i].SubItems[4].Text, out jcjssj))
+                                {
+                                    LogError("检测结束时间格式异常:" + listViewCar.Items[i].SubItems[4].Text);
+                                    continue;
+                                }
+                                TimeSpan ts = jcjssj - jckssj;
+                                if (ts.TotalMinutes > 15)//如果检测过程长于15分钟，只取最后15分钟的视频
+                                {
+                                    LogWarning("检测时长大于15分钟，视频将下载最后15分钟");
+                                    jckssj = jcjssj.AddMinutes(-15);
+                                }
+                                if (!isfrontvideoexist)
+                                {
+                                    listViewCar.Items[i].SubItems[2].Text = "开始下载前视频";
+                                    string message;
+                                    if (DownloadTime(jckssj, jcjssj, frontvideourl, (uint)(testLineChanel[lineindex - 1, 0]), out message))
+                                    {
+                                        listViewCar.Items[i].SubItems[2].Text = "前视频下载中...";
+                                        while(m_lDownHandle>=0)
+                                        {
+                                            Thread.Sleep(2000);
+                                        }
+                                        listViewCar.Items[i].SubItems[2].Text = "前视频下载完成";
+                                    }
+                                    else
+                                    {
+                                        buttonFlash.Enabled = true;
+                                        buttonStopRefresh.Enabled = false;
+                                        LogError(message);
+                                        isUploading = false;
+                                        return;
+                                    }
+                                    listViewCar.Items[i].SubItems[2].Text = "开始下载后视频";
+                                    if (DownloadTime(jckssj, jcjssj, backvideourl, (uint)(testLineChanel[lineindex - 1, 1]), out message))
+                                    {
+                                        listViewCar.Items[i].SubItems[2].Text = "后视频下载中...";
+                                        while (m_lDownHandle >= 0)
+                                        {
+                                            Thread.Sleep(2000);
+                                        }
+                                        listViewCar.Items[i].SubItems[2].Text = "后视频下载完成";
+                                    }
+                                    else
+                                    {
+                                        buttonFlash.Enabled = true;
+                                        buttonStopRefresh.Enabled = false;
+                                        LogError(message);
+                                        isUploading = false;
+                                        return;
+                                    }
+                                    listViewCar.Items[i].SubItems[2].Text = "上传视频路径至平台";
+                                    string result, info;
+                                    Pictrue_Video model = new Pictrue_Video();
+                                    model.serialNo = clid;
+                                    model.fileModelType = "2";
+                                    model.fileType = "2";
+                                    model.fileName = frontvideourl;
+                                    model.remoteUrl = frontvideourl;
+                                    model.imgType = "1";
+                                    model.fileContent = "";
+                                    jx2interface.writePictureVideo(model,out result,out info);
+                                    if(result!="true")
+                                    {
+                                        buttonFlash.Enabled = true;
+                                        buttonStopRefresh.Enabled = false;
+                                        LogError("上传前视频信息失败:"+ info);
+                                        isUploading = false;
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        LogMessage("上传前视频信息成功");
+                                    }
+                                    model.fileName = backvideourl;
+                                    model.remoteUrl = backvideourl;
+                                    model.imgType = "2";
+                                    model.fileContent = "";
+                                    jx2interface.writePictureVideo(model, out result, out info);
+                                    if (result != "true")
+                                    {
+                                        buttonFlash.Enabled = true;
+                                        buttonStopRefresh.Enabled = false;
+                                        LogError("上传后视频信息失败:" + info);
+                                        isUploading = false;
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        LogMessage("上传后视频信息成功");
+                                    }
+                                    listViewCar.Items[i].SubItems[2].Text = "上传完成";
+                                }
+                            }
+                        }
+                    }
+                    if (!checkBoxAutoRefresh.Checked)
+                    {
+                        buttonFlash.Enabled = true;
+                        buttonStopRefresh.Enabled = false;
+                        isUploading = false;
+                        return;
+                    }
+                    Thread.Sleep(2000);
+                }
+            }
+            catch(Exception er)
+            {
+                buttonFlash.Enabled = true;
+                buttonStopRefresh.Enabled = false;
+                logControl.saveLogInf("上传过程中发生异常:" + er.Message);
+                LogError("上传过程中发生异常:" + er.Message);
+                isUploading = true;
+            }
+        }
+        private bool DownloadTime(DateTime jckssj,DateTime jcjssj,string url,uint ch_index,out string message)
+        {
+            message = "";
+            if (m_lDownHandle >= 0)
+            {
+                message="有下载任务正在进行中!";//正在下载，请先停止下载
+                return false;
+            }
+
+            CHCNetSDK.NET_DVR_PLAYCOND struDownPara = new CHCNetSDK.NET_DVR_PLAYCOND();
+            struDownPara.dwChannel = ch_index; //通道号 Channel number  
+
+            //设置下载的开始时间 Set the starting time
+            struDownPara.struStartTime.dwYear = (uint)jckssj.Year;
+            struDownPara.struStartTime.dwMonth = (uint)jckssj.Month;
+            struDownPara.struStartTime.dwDay = (uint)jckssj.Day;
+            struDownPara.struStartTime.dwHour = (uint)jckssj.Hour;
+            struDownPara.struStartTime.dwMinute = (uint)jckssj.Minute;
+            struDownPara.struStartTime.dwSecond = (uint)jckssj.Second;
+
+            //设置下载的结束时间 Set the stopping time
+            struDownPara.struStopTime.dwYear = (uint)jcjssj.Year;
+            struDownPara.struStopTime.dwMonth = (uint)jcjssj.Month;
+            struDownPara.struStopTime.dwDay = (uint)jcjssj.Day;
+            struDownPara.struStopTime.dwHour = (uint)jcjssj.Hour;
+            struDownPara.struStopTime.dwMinute = (uint)jcjssj.Minute;
+            struDownPara.struStopTime.dwSecond = (uint)jcjssj.Second;
+
+            string sVideoFileName=ftpdir+ url;  //录像文件保存路径和文件名 the path and file name to save  
+
+            //按时间下载 Download by time
+            m_lDownHandle = CHCNetSDK.NET_DVR_GetFileByTime_V40(m_lUserID, sVideoFileName, ref struDownPara);
+            if (m_lDownHandle < 0)
+            {
+                iLastErr = CHCNetSDK.NET_DVR_GetLastError();
+                str = "NET_DVR_GetFileByTime_V40 failed, error code= " + iLastErr;
+                message="开启下载出现错误:"+str;
+                return false;
+            }
+
+            uint iOutValue = 0;
+            if (!CHCNetSDK.NET_DVR_PlayBackControl_V40(m_lDownHandle, CHCNetSDK.NET_DVR_PLAYSTART, IntPtr.Zero, 0, IntPtr.Zero, ref iOutValue))
+            {
+                iLastErr = CHCNetSDK.NET_DVR_GetLastError();
+                str = "NET_DVR_PLAYSTART failed, error code= " + iLastErr; //下载控制失败，输出错误号
+                message = "开启下载出现错误:" + str;
+                return false;
+            }
+
+            timerDownload2.Interval = 1000;
+            timerDownload2.Enabled = true;
+            buttonStopRefresh.Enabled = true;
+            return true;
+        }
+        private void checkBoxAutoRefresh_CheckedChanged(object sender, EventArgs e)
+        {
+            var config = ConfigFile.LoadOrCreateFile("config.test");
+            config["AUTOREFRESH"] = checkBoxAutoRefresh.Checked?"Y":"N";
         }
 
         private void btnSound_Click(object sender, EventArgs e)
@@ -901,5 +1333,125 @@ namespace NVRCsharpDemo
                 labelSound.Text = "打开声音";
             }
         }
+
+        #region 日志记录、支持其他线程访问 
+        public delegate void LogAppendDelegate(Color color, string text);
+        /// <summary> 
+        /// 追加显示文本 
+        /// </summary> 
+        /// <param name="color">文本颜色</param> 
+        /// <param name="text">显示文本</param> 
+        public void LogAppend(Color color, string text)
+        {
+            richTextBox1.AppendText("\n");
+            richTextBox1.SelectionColor = color;
+            richTextBox1.AppendText(text);
+        }
+        /// <summary> 
+        /// 显示错误日志 
+        /// </summary> 
+        /// <param name="text"></param> 
+        public void LogError(string text)
+        {
+            LogAppendDelegate la = new LogAppendDelegate(LogAppend);
+            richTextBox1.Invoke(la, Color.Red, DateTime.Now.ToString("HH:mm:ss ") + text);
+        }
+        /// <summary> 
+        /// 显示警告信息 
+        /// </summary> 
+        /// <param name="text"></param> 
+        public void LogWarning(string text)
+        {
+            LogAppendDelegate la = new LogAppendDelegate(LogAppend);
+            richTextBox1.Invoke(la, Color.Violet, DateTime.Now.ToString("HH:mm:ss ") + text);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            saveChanelsetting();
+        }
+
+        private void timerDownload2_Tick(object sender, EventArgs e)
+        {
+            DownloadProgressBar2.Maximum = 100;
+            DownloadProgressBar2.Minimum = 0;
+
+            int iPos = 0;
+
+            //获取下载进度
+            iPos = CHCNetSDK.NET_DVR_GetDownloadPos(m_lDownHandle);
+
+            if ((iPos > DownloadProgressBar2.Minimum) && (iPos < DownloadProgressBar.Maximum))
+            {
+                DownloadProgressBar2.Value = iPos;
+            }
+
+            if (iPos == 100)  //下载完成
+            {
+                DownloadProgressBar2.Value = iPos;
+                if (!CHCNetSDK.NET_DVR_StopGetFile(m_lDownHandle))
+                {
+                    iLastErr = CHCNetSDK.NET_DVR_GetLastError();
+                    str = "NET_DVR_StopGetFile failed, error code= " + iLastErr; //下载控制失败，输出错误号
+                    MessageBox.Show(str);
+                    return;
+                }
+                m_lDownHandle = -1;
+                timerDownload2.Stop();
+            }
+
+            if (iPos == 200) //网络异常，下载失败
+            {
+                MessageBox.Show("The downloading is abnormal for the abnormal network!");
+                timerDownload2.Stop();
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (uploadThread != null)
+                {
+                    if (uploadThread.IsAlive)
+                        uploadThread.Abort();
+                }
+            }
+            catch
+            { }
+            buttonFlash.Enabled = true;
+            buttonStopRefresh.Enabled = false;
+            isUploading = false;
+            LogMessage("上传过程终止成功!");
+            if (m_lDownHandle < 0)
+            {
+                LogMessage("当前没有下载任务!");
+                return;
+            }
+
+            if (!CHCNetSDK.NET_DVR_StopGetFile(m_lDownHandle))
+            {
+                iLastErr = CHCNetSDK.NET_DVR_GetLastError();
+                str = "NET_DVR_StopGetFile failed, error code= " + iLastErr; //下载控制失败，输出错误号
+                LogWarning("下载过程终止失败:"+str);
+                //MessageBox.Show(str);
+                return;
+            }
+            timerDownload2.Stop();
+            LogMessage("下载过程终止成功!");
+            m_lDownHandle = -1;
+            DownloadProgressBar2.Value = 0;
+        }
+
+        /// <summary> 
+        /// 显示信息 
+        /// </summary> 
+        /// <param name="text"></param> 
+        public void LogMessage(string text)
+        {
+            LogAppendDelegate la = new LogAppendDelegate(LogAppend);
+            richTextBox1.Invoke(la, Color.Black, DateTime.Now.ToString("HH:mm:ss ") + text);
+        }
+        #endregion
     }
 }
