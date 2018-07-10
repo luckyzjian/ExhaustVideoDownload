@@ -52,7 +52,7 @@ namespace NVRCsharpDemo
 
         [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 96, ArraySubType = UnmanagedType.U4)]
         private int[] iChannelNum;
-        private string ftpdir = "D://VIDEOFTP/";
+        private string ftpdir = "D://VIDEOFTP//";
         Thread uploadThread = null;
         public MainWindow()
         {
@@ -1105,12 +1105,12 @@ namespace NVRCsharpDemo
                         {
                             listViewCar.Items[i].SubItems[2].Text = "准备下载";
                             string clid = listViewCar.Items[i].SubItems[0].Text;
-                            string jcsj = DateTime.Parse(listViewCar.Items[i].SubItems[1].Text).ToString("HHmmss");
+                            string jcsj = DateTime.Parse(listViewCar.Items[i].SubItems[1].Text).ToString("yyyyMMdd");
                             int lineindex = int.Parse(listViewCar.Items[i].SubItems[5].Text);
                             DateTime jckssj = DateTime.Now, jcjssj = DateTime.Now;
                             LogMessage("准备下载视频，车辆ID=" + clid);
-                            string frontvideourl =  clid + jcsj + "front.mp4";
-                            string backvideourl = clid + jcsj + "back.mp4";
+                            string frontvideourl = jcsj+"//"+ clid  + "front.mp4";
+                            string backvideourl = jcsj + "//"+clid  + "back.mp4";
                             bool isfrontvideoexist = false, isbackvideoexist = false;
                             if (File.Exists(frontvideourl))
                             {
@@ -1185,7 +1185,7 @@ namespace NVRCsharpDemo
                                     model.serialNo = clid;
                                     model.fileModelType = "2";
                                     model.fileType = "2";
-                                    model.fileName = frontvideourl;
+                                    model.fileName = clid + "front.mp4";
                                     model.remoteUrl = frontvideourl;
                                     model.imgType = "1";
                                     model.fileContent = "";
@@ -1202,7 +1202,7 @@ namespace NVRCsharpDemo
                                     {
                                         LogMessage("上传前视频信息成功");
                                     }
-                                    model.fileName = backvideourl;
+                                    model.fileName = clid + "back.mp4";
                                     model.remoteUrl = backvideourl;
                                     model.imgType = "2";
                                     model.fileContent = "";
@@ -1220,6 +1220,8 @@ namespace NVRCsharpDemo
                                         LogMessage("上传后视频信息成功");
                                     }
                                     listViewCar.Items[i].SubItems[2].Text = "上传完成";
+                                    sql.updataCarInf(clid, "Y", frontvideourl, backvideourl);
+                                    LogMessage("更新数据库完毕");
                                 }
                             }
                         }

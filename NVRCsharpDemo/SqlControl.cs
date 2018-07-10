@@ -32,7 +32,7 @@ namespace NVRCsharpDemo
                 throw new Exception(er.Message);
             }
         }
-        private void saveZbzlToCd(string pzlx, string pzhm, string vin, string zbzl, DateTime jcrq)
+        public void updataCarInf(string clid,string HasUpload, string VideoFrontUrl, string VideoBackUrl)
         {
             try
             {
@@ -46,40 +46,30 @@ namespace NVRCsharpDemo
                 try
                 {
                     logControl.saveLogInf("连接数据库成功");
-                    string checksql = "select * from [zbzl] where vin ='" + vin + "' and JCBH=''";
-                    string updatesql = "update [zbzl] set pzlx='" + pzlx + "',pzhm='" + pzhm + "',zbzl='" + zbzl + "',jcrq='" + jcrq.ToString("yyyy-MM-dd HH:mm:ss") + "'" + " where vin ='" + vin + "' and JCBH=''";
-                    string insertsql = "insert into [zbzl] (pzlx,pzhm,vin,zbzl,jcrq,JCBH) values ('" + pzlx + "','" + pzhm + "','" + vin + "','" + zbzl + "','" + jcrq.ToString("yyyy-MM-dd HH:mm:ss") + "','')";
-                    OleDbCommand datacheck = new OleDbCommand(checksql, adoConn);
-                    if (null != datacheck.ExecuteScalar())
+                    string updatesql = "update [已检车辆信息] set HasUpload='" + HasUpload + "',VideoFrontUrl='" + VideoFrontUrl + "',VideoBackUrl='" + VideoBackUrl + "' where CLID='"+clid+"'";
+                    OleDbCommand datacheck = new OleDbCommand(updatesql, adoConn);
+                    OleDbDataAdapter dataAdapter = new OleDbDataAdapter();
+                    dataAdapter.InsertCommand.CommandText = updatesql;
+                    if (dataAdapter.InsertCommand.ExecuteNonQuery() > 0)
                     {
-                        OleDbDataAdapter dataAdapter = new OleDbDataAdapter();
-                        dataAdapter.InsertCommand = new OleDbCommand(updatesql, adoConn);
-                        dataAdapter.InsertCommand.CommandText = updatesql;
-                        dataAdapter.InsertCommand.ExecuteNonQuery();
-                        dataAdapter.Dispose();
-                        logControl.saveLogInf("更新数据到驰达数据库成功");
+                        logControl.saveLogInf("更新数据成功");
                     }
                     else
                     {
-                        OleDbDataAdapter dataAdapter = new OleDbDataAdapter();
-                        dataAdapter.InsertCommand = new OleDbCommand(insertsql, adoConn);
-                        dataAdapter.InsertCommand.CommandText = insertsql;
-                        dataAdapter.InsertCommand.ExecuteNonQuery();
-                        dataAdapter.Dispose();
-                        logControl.saveLogInf("插入数据到驰达数据库成功");
+                        logControl.saveLogInf("更新数据失败");
                     }
-
+                    dataAdapter.Dispose();
                 }
                 catch (Exception er)
                 {
-                    logControl.saveLogInf("插入数据到驰达数据库过程发生异常:" + er.Message);
+                    logControl.saveLogInf("更新数据发生异常:" + er.Message);
                     Trans.Rollback();
                 }
                 adoConn.Close();
             }
             catch (Exception er)
             {
-                logControl.saveLogInf("链接到驰达数据库失败:" + er.Message);
+                logControl.saveLogInf("链接到数据库失败:" + er.Message);
             }
         }
         public DataTable getCarList(DateTime starttime,DateTime endtime)
