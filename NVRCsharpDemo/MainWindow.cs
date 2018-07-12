@@ -13,7 +13,7 @@ using jiangxi2Inter;
 
 namespace NVRCsharpDemo
 {
-    
+    //
     public partial class MainWindow : Form
     {
         private bool m_bInitSDK = false;
