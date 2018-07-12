@@ -1457,7 +1457,7 @@ namespace NVRCsharpDemo
             Int32 nSize = Marshal.SizeOf(dvr_time);
             IntPtr ptrShowStrCfg = Marshal.AllocHGlobal(nSize);
             Marshal.StructureToPtr(dvr_time, ptrShowStrCfg, false);
-            if (!CHCNetSDK.NET_DVR_SetDVRConfig(m_lPlayHandle, CHCNetSDK.NET_DVR_SET_TIMECFG, -1, ptrShowStrCfg, (UInt32)nSize))
+            if (!CHCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, CHCNetSDK.NET_DVR_SET_TIMECFG, -1, ptrShowStrCfg, (UInt32)nSize))
             {
                 iLastErr = CHCNetSDK.NET_DVR_GetLastError();
                 str = "同步时间失败, error code= " + iLastErr;
