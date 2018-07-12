@@ -84,6 +84,7 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.dateTimeStart = new System.Windows.Forms.DateTimePicker();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.buttonStopRefresh = new System.Windows.Forms.Button();
             this.label36 = new System.Windows.Forms.Label();
             this.groupBox11 = new System.Windows.Forms.GroupBox();
             this.label35 = new System.Windows.Forms.Label();
@@ -113,6 +114,9 @@
             this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader10 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader14 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader11 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.btnStopDownload = new System.Windows.Forms.Button();
             this.btnDownloadName = new System.Windows.Forms.Button();
             this.btnDownloadTime = new System.Windows.Forms.Button();
@@ -166,11 +170,8 @@
             this.label22 = new System.Windows.Forms.Label();
             this.groupBox8 = new System.Windows.Forms.GroupBox();
             this.label21 = new System.Windows.Forms.Label();
-            this.buttonStopRefresh = new System.Windows.Forms.Button();
-            this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.timerDownload2 = new System.Windows.Forms.Timer(this.components);
-            this.columnHeader11 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.buttonSyncTime = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.VideoPlayWnd)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -255,7 +256,7 @@
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Size = new System.Drawing.Size(102, 31);
             this.btnLogin.TabIndex = 19;
-            this.btnLogin.Text = "Login";
+            this.btnLogin.Text = "登录";
             this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
             // 
             // label1
@@ -503,6 +504,7 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.buttonSyncTime);
             this.groupBox3.Controls.Add(this.btnLogin);
             this.groupBox3.Controls.Add(this.textBoxUserName);
             this.groupBox3.Controls.Add(this.label3);
@@ -558,6 +560,16 @@
             this.groupBox4.Size = new System.Drawing.Size(472, 617);
             this.groupBox4.TabIndex = 42;
             this.groupBox4.TabStop = false;
+            // 
+            // buttonStopRefresh
+            // 
+            this.buttonStopRefresh.Enabled = false;
+            this.buttonStopRefresh.Location = new System.Drawing.Point(398, 103);
+            this.buttonStopRefresh.Name = "buttonStopRefresh";
+            this.buttonStopRefresh.Size = new System.Drawing.Size(72, 29);
+            this.buttonStopRefresh.TabIndex = 80;
+            this.buttonStopRefresh.Text = "终止上传";
+            this.buttonStopRefresh.Click += new System.EventHandler(this.button3_Click);
             // 
             // label36
             // 
@@ -805,6 +817,20 @@
             // 
             this.columnHeader14.Text = "状态";
             this.columnHeader14.Width = 130;
+            // 
+            // columnHeader7
+            // 
+            this.columnHeader7.Text = "检测开始时间";
+            this.columnHeader7.Width = 150;
+            // 
+            // columnHeader8
+            // 
+            this.columnHeader8.Text = "检测结束时间";
+            this.columnHeader8.Width = 150;
+            // 
+            // columnHeader11
+            // 
+            this.columnHeader11.Text = "线号";
             // 
             // btnStopDownload
             // 
@@ -1302,33 +1328,19 @@
             this.label21.TabIndex = 57;
             this.label21.Text = "通道设置";
             // 
-            // buttonStopRefresh
-            // 
-            this.buttonStopRefresh.Enabled = false;
-            this.buttonStopRefresh.Location = new System.Drawing.Point(398, 103);
-            this.buttonStopRefresh.Name = "buttonStopRefresh";
-            this.buttonStopRefresh.Size = new System.Drawing.Size(72, 29);
-            this.buttonStopRefresh.TabIndex = 80;
-            this.buttonStopRefresh.Text = "终止上传";
-            this.buttonStopRefresh.Click += new System.EventHandler(this.button3_Click);
-            // 
-            // columnHeader7
-            // 
-            this.columnHeader7.Text = "检测开始时间";
-            this.columnHeader7.Width = 150;
-            // 
-            // columnHeader8
-            // 
-            this.columnHeader8.Text = "检测结束时间";
-            this.columnHeader8.Width = 150;
-            // 
             // timerDownload2
             // 
             this.timerDownload2.Tick += new System.EventHandler(this.timerDownload2_Tick);
             // 
-            // columnHeader11
+            // buttonSyncTime
             // 
-            this.columnHeader11.Text = "线号";
+            this.buttonSyncTime.Enabled = false;
+            this.buttonSyncTime.Location = new System.Drawing.Point(897, 14);
+            this.buttonSyncTime.Name = "buttonSyncTime";
+            this.buttonSyncTime.Size = new System.Drawing.Size(102, 31);
+            this.buttonSyncTime.TabIndex = 28;
+            this.buttonSyncTime.Text = "同步时间";
+            this.buttonSyncTime.Click += new System.EventHandler(this.buttonSyncTime_Click);
             // 
             // MainWindow
             // 
@@ -1496,6 +1508,7 @@
         private System.Windows.Forms.ColumnHeader columnHeader8;
         private System.Windows.Forms.Timer timerDownload2;
         private System.Windows.Forms.ColumnHeader columnHeader11;
+        private System.Windows.Forms.Button buttonSyncTime;
     }
 }
 

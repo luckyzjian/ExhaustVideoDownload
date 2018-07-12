@@ -87,7 +87,7 @@ namespace NVRCsharpDemo
                 try
                 {
                     logControl.saveLogInf("连接数据库成功");
-                    string checksql = "select CLID,JCSJ,JCKSSJ,JCJSSJ,VideoFrontUrl,VideoBackUrl,HasUpload,LINEID from [已检车辆信息] where JCSJ >'" + starttime.ToString("yyyy-MM-dd HH:mm:ss") + "' and JCSJ <'" + endtime.ToString("yyyy-MM-dd HH:mm:ss") + "' order by JCSJ";
+                    string checksql = "select CLID,JCSJ,JCKSSJ,JCJSSJ,VideoFrontUrl,VideoBackUrl,HasUpload,LINEID from [已检车辆信息] where JCSJ >'" + starttime.ToString("yyyy-MM-dd HH:mm:ss") + "' and JCSJ <'" + endtime.ToString("yyyy-MM-dd HH:mm:ss") + "' and TEST='Y' order by JCSJ";
                     OleDbCommand datacheck = new OleDbCommand(checksql, adoConn);
                     OleDbDataReader reader=datacheck.ExecuteReader();
                     if (reader.HasRows)

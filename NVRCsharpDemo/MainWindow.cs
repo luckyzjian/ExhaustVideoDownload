@@ -228,7 +228,7 @@ namespace NVRCsharpDemo
                     //登录成功
                     MessageBox.Show("Login Success!");
                     btnLogin.Text = "Logout";
-
+                    buttonSyncTime.Enabled = true;
                     dwAChanTotalNum = (uint)DeviceInfo.byChanNum;
                     dwDChanTotalNum = (uint)DeviceInfo.byIPChanNum + 256 * (uint)DeviceInfo.byHighDChanNum;
 
@@ -1443,6 +1443,32 @@ namespace NVRCsharpDemo
             LogMessage("下载过程终止成功!");
             m_lDownHandle = -1;
             DownloadProgressBar2.Value = 0;
+        }
+
+        private void buttonSyncTime_Click(object sender, EventArgs e)
+        {
+            CHCNetSDK.NET_DVR_TIME dvr_time = new CHCNetSDK.NET_DVR_TIME();
+            dvr_time.dwYear = (uint)DateTime.Now.Year;
+            dvr_time.dwMonth = (uint)DateTime.Now.Month;
+            dvr_time.dwDay = (uint)DateTime.Now.Day;
+            dvr_time.dwHour = (uint)DateTime.Now.Hour;
+            dvr_time.dwMinute = (uint)DateTime.Now.Minute;
+            dvr_time.dwSecond = (uint)DateTime.Now.Second;
+            Int32 nSize = Marshal.SizeOf(dvr_time);
+            IntPtr ptrShowStrCfg = Marshal.AllocHGlobal(nSize);
+            Marshal.StructureToPtr(dvr_time, ptrShowStrCfg, false);
+            if (!CHCNetSDK.NET_DVR_SetDVRConfig(m_lPlayHandle, CHCNetSDK.NET_DVR_SET_TIMECFG, -1, ptrShowStrCfg, (UInt32)nSize))
+            {
+                iLastErr = CHCNetSDK.NET_DVR_GetLastError();
+                str = "同步时间失败, error code= " + iLastErr;
+                MessageBox.Show(str);
+                return;
+            }
+            else
+            {
+                str = "同步时间成功" ;
+                MessageBox.Show(str);
+            }
         }
 
         /// <summary> 
